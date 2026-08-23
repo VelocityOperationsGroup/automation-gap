@@ -1,0 +1,94 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-ag-void: #07060f;
+  --color-ag-ink: #0b0a16;
+  --color-ag-charcoal: #131226;
+  --color-ag-slate: #1c1a35;
+  --color-ag-line: #2a2748;
+  --color-ag-cyan: #22e6c8;
+  --color-ag-cyan-light: #6ff5de;
+  --color-ag-coral: #ff6b4a;
+  --color-ag-violet: #8b7cff;
+  --color-ag-mint: #33d6a6;
+  --color-ag-red: #ff5a5f;
+  --color-ag-paper: #f6f4ef;
+  --color-ag-white: #ffffff;
+  --font-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ag-ink);
+  color: var(--color-ag-white);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background: var(--color-ag-cyan);
+  color: var(--color-ag-ink);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.ag-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.ag-glow {
+  background: radial-gradient(circle, rgba(34, 230, 200, 0.3), transparent 70%);
+  filter: blur(60px);
+}
+
+@keyframes ag-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+.ag-float {
+  animation: ag-float 6s ease-in-out infinite;
+}
+
+@keyframes ag-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 230, 200, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 18px rgba(34, 230, 200, 0);
+  }
+}
+
+.ag-pulse {
+  animation: ag-pulse-ring 2.2s ease-out infinite;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .print-area {
+    box-shadow: none !important;
+    border: none !important;
+  }
+}

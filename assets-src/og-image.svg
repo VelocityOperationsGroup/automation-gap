@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="28%" r="60%">
+      <stop offset="0%" stop-color="#22E6C8" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#22E6C8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="#0B0A16"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <g transform="translate(90,86) scale(1.15)">
+    <path d="M14 40 L26 26 L36 34 L50 18" fill="none" stroke="#22E6C8" stroke-width="4.2" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M50 18 L50 28" stroke="#FF6B4A" stroke-width="4.2" stroke-linecap="round" stroke-dasharray="1 6"/>
+    <circle cx="14" cy="40" r="3.2" fill="#22E6C8"/>
+    <circle cx="50" cy="18" r="3.2" fill="#FF6B4A"/>
+  </g>
+  <text x="168" y="148" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" letter-spacing="2" fill="#FFFFFF">AUTOMATION GAP</text>
+
+  <text x="90" y="328" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="700" fill="#FFFFFF">Your competitors are</text>
+  <text x="90" y="406" font-family="Arial, Helvetica, sans-serif" font-size="60" font-weight="700" fill="#22E6C8">already using AI.</text>
+  <text x="90" y="474" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#C7CBD4">Close the gap before it closes you.</text>
+
+  <rect x="90" y="524" width="150" height="4" fill="#FF6B4A"/>
+</svg>
