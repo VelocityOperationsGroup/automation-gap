@@ -8,6 +8,7 @@ const links = [
   { to: '/directory', label: 'Directory' },
   { to: '/#how-it-works', label: 'How it works' },
   { to: '/#gap-check', label: 'Gap Check' },
+  { to: '/ai-risk', label: 'AI Risk' },
 ]
 
 export default function Navbar() {

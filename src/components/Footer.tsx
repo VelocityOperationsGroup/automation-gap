@@ -22,6 +22,7 @@ export default function Footer() {
                 <li><Link to="/directory" className="hover:text-white">Directory</Link></li>
                 <li><a href="/#how-it-works" className="hover:text-white">How it works</a></li>
                 <li><a href="/#gap-check" className="hover:text-white">Gap Check</a></li>
+                <li><Link to="/ai-risk" className="hover:text-white">AI Risk</Link></li>
               </ul>
             </div>
             <div>

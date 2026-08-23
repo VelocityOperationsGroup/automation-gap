@@ -4,6 +4,7 @@ import Footer from './components/Footer'
 import PasswordGate from './components/PasswordGate'
 import Landing from './pages/Landing'
 import DirectoryPage from './pages/DirectoryPage'
+import AiRiskPage from './pages/AiRiskPage'
 import LeadsPage from './pages/LeadsPage'
 import NotFound from './pages/NotFound'
 
@@ -15,6 +16,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/directory" element={<DirectoryPage />} />
+          <Route path="/ai-risk" element={<AiRiskPage />} />
           <Route
             path="/leads"
             element={

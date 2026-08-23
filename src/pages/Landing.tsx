@@ -14,6 +14,7 @@ export default function Landing() {
       <HowItWorks />
       <GapCheckSection />
       <DirectoryTeaser />
+      <AiRiskTeaser />
       <FinalCta />
     </div>
   )
@@ -169,6 +170,27 @@ function DirectoryTeaser() {
           ))}
         </div>
       </div>
+    </section>
+  )
+}
+
+function AiRiskTeaser() {
+  return (
+    <section className="border-y border-ag-line bg-ag-charcoal px-4 py-16 sm:px-6 lg:px-8">
+      <Reveal className="mx-auto flex max-w-4xl flex-col items-center gap-4 text-center sm:flex-row sm:justify-between sm:text-left">
+        <div>
+          <span className="text-xs font-semibold uppercase tracking-wider text-ag-coral">Before you adopt one</span>
+          <h3 className="mt-2 font-display text-2xl font-bold text-white">
+            Every tool here comes with a risk it won't mention.
+          </h3>
+        </div>
+        <Link
+          to="/ai-risk"
+          className="inline-flex shrink-0 items-center gap-2 rounded-full border border-ag-coral/40 px-6 py-3 font-semibold text-ag-coral transition hover:bg-ag-coral/10"
+        >
+          See the risk <ArrowRight size={16} />
+        </Link>
+      </Reveal>
     </section>
   )
 }
