@@ -8,6 +8,7 @@ dist
 dist-ssr
 *.local
 .netlify
+deno.lock
 
 # Editor
 .vscode/*

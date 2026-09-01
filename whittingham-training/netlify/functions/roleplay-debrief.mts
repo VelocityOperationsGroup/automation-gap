@@ -1,3 +1,4 @@
+import { ThinkingLevel } from '@google/genai'
 import { json } from './_shared/http.mts'
 import { GEMINI_MODEL, getGeminiClient } from './_shared/gemini.mts'
 import { buildDebriefSystemPrompt, historyToTranscript } from '../../shared/prompt.ts'
@@ -38,8 +39,11 @@ export default async (req: Request): Promise<Response> => {
       contents: [{ role: 'user', parts: [{ text: `TRANSCRIPT:\n\n${transcript}` }] }],
       config: {
         systemInstruction: buildDebriefSystemPrompt(scenario),
-        maxOutputTokens: 1800,
+        maxOutputTokens: 1200,
         responseMimeType: 'application/json',
+        // LOW keeps some reasoning for rubric judgment while trimming latency —
+        // this call is the one most likely to brush against a hosting timeout.
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
       },
     })
     responseText = response.text ?? ''

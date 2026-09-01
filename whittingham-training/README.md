@@ -13,7 +13,7 @@ the sibling `automation-gap` site this lives alongside in the same repo.
 ## Stack
 
 React 19 + TypeScript + Vite, Tailwind v4. Two Netlify Functions (`netlify/functions`)
-call the Gemini Developer API (`gemini-2.5-flash`, free tier) via `@google/genai`.
+call the Gemini Developer API (`gemini-3.6-flash`, free tier) via `@google/genai`.
 `shared/` holds the extracted training-guide content (scripts, objections, rubric) and
 prompt-building code, imported by both the frontend and the functions so there's one
 source of truth. Chosen over Claude specifically to keep this running at $0 — see
@@ -36,7 +36,7 @@ netlify dev
 Set `GEMINI_API_KEY` in your environment (or a local `.env` picked up by
 `netlify dev`) — the functions call the Gemini Developer API directly and need it. Grab
 a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (no
-billing required for `gemini-2.5-flash`, the model this app uses). No key is ever sent
+billing required for `gemini-3.6-flash`, the model this app uses). No key is ever sent
 to the browser.
 
 To test the "Email My Scorecard" button locally, also set `RESEND_API_KEY` (a free
@@ -79,9 +79,21 @@ a sending domain is verified in Resend).
 ## Cost
 
 Built to run at **$0**. Netlify's free tier easily covers a training tool's traffic,
-Resend's free tier is 3,000 emails/month, and `gemini-2.5-flash` is free of charge on
+Resend's free tier is 3,000 emails/month, and `gemini-3.6-flash` is free of charge on
 the Gemini Developer API (rate-limited, not usage-billed — plenty for a handful of
 agents practicing). If usage ever needs more headroom than the free tier allows, the
 only code that would need to change is `netlify/functions/_shared/gemini.mts` and the
 two functions that call it — `shared/prompt.ts`, `shared/guideContent.ts`, and the
 entire frontend are provider-agnostic.
+
+## Known limitation: debrief latency vs. function timeouts
+
+`gemini-3.6-flash` is a reasoning model — even at `thinkingConfig.thinkingLevel: "LOW"`
+(set on `roleplay-debrief.mts` specifically to keep this in check), grading a full
+transcript took ~9.5s in local testing with a short 5-message transcript; a longer real
+session will run higher. `roleplay-turn.mts` uses `"MINIMAL"` and stays under 2s, so the
+live chat itself is fine. If a real deployment sees `roleplay-debrief` time out (a
+generic "unavailable, try again" error on the debrief screen), it's almost certainly
+this — check Netlify's current function execution limit for your plan and, if it's the
+bottleneck, either use a Background Function for `roleplay-debrief` or trim
+`maxOutputTokens`/the rubric further.

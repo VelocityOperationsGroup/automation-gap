@@ -1,4 +1,4 @@
-import type { Content } from '@google/genai'
+import { ThinkingLevel, type Content } from '@google/genai'
 import { json } from './_shared/http.mts'
 import { GEMINI_MODEL, getGeminiClient } from './_shared/gemini.mts'
 import { buildRoleplaySystemPrompt, parseRoleplayReply } from '../../shared/prompt.ts'
@@ -50,6 +50,9 @@ export default async (req: Request): Promise<Response> => {
       config: {
         systemInstruction: buildRoleplaySystemPrompt(scenario, phase),
         maxOutputTokens: 700,
+        // MINIMAL keeps this conversational turn fast — this call doesn't need
+        // deep reasoning, just an in-character reply plus the control block.
+        thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
       },
     })
     responseText = response.text ?? ''
