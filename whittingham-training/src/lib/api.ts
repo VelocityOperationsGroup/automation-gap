@@ -4,6 +4,7 @@ import type {
   Phase,
   RoleplayTurnResponse,
   ScenarioConfig,
+  ScorecardEmailResponse,
 } from '../../shared/types.ts'
 
 async function post<T>(path: string, body: unknown): Promise<T> {
@@ -30,4 +31,12 @@ export function sendRoleplayTurn(
 
 export function requestDebrief(scenario: ScenarioConfig, history: ChatMessage[]): Promise<DebriefReport> {
   return post('roleplay-debrief', { scenario, history })
+}
+
+export function emailScorecard(
+  email: string,
+  scenario: ScenarioConfig,
+  report: DebriefReport,
+): Promise<ScorecardEmailResponse> {
+  return post('send-scorecard', { email, scenario, report })
 }

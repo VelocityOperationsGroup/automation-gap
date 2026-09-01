@@ -60,3 +60,13 @@ export interface DebriefReport {
   scriptDeviations: string[]
   nextDrill: string
 }
+
+export interface ScorecardEmailRequest {
+  email: string
+  scenario: ScenarioConfig
+  report: DebriefReport
+}
+
+export interface ScorecardEmailResponse {
+  ok: true
+}

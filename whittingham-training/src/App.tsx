@@ -82,7 +82,7 @@ export default function App() {
   }
 
   if (screen === 'debrief' && debrief) {
-    return <DebriefReport report={debrief} onRestart={handleRestart} />
+    return <DebriefReport report={debrief} scenario={scenario} onRestart={handleRestart} />
   }
 
   return (
