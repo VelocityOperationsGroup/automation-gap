@@ -1,7 +1,7 @@
 # Whittingham Agency — Worksite Trainer
 
 An AI role-play trainer for Whittingham Agency's new worksite agents. The trainee plays
-the agent; Claude plays every other character — the gatekeeper, then the Decision
+the agent; Gemini plays every other character — the gatekeeper, then the Decision
 Maker — straight through the Globe Life Liberty National Division Worksite Training
 Guide flow: gatekeeper disengage → Decision Maker intro → pre-presentation objections
 → presentation → closing objections → enrollment ask. A separate "debrief" call scores
@@ -13,9 +13,11 @@ the sibling `automation-gap` site this lives alongside in the same repo.
 ## Stack
 
 React 19 + TypeScript + Vite, Tailwind v4. Two Netlify Functions (`netlify/functions`)
-call the Claude API (`claude-opus-5`) via `@anthropic-ai/sdk`. `shared/` holds the
-extracted training-guide content (scripts, objections, rubric) and prompt-building
-code, imported by both the frontend and the functions so there's one source of truth.
+call the Gemini Developer API (`gemini-2.5-flash`, free tier) via `@google/genai`.
+`shared/` holds the extracted training-guide content (scripts, objections, rubric) and
+prompt-building code, imported by both the frontend and the functions so there's one
+source of truth. Chosen over Claude specifically to keep this running at $0 — see
+"Cost" below.
 
 ## Local development
 
@@ -31,9 +33,11 @@ npm install -g netlify-cli   # once
 netlify dev
 ```
 
-Set `ANTHROPIC_API_KEY` in your environment (or a local `.env` picked up by
-`netlify dev`) — the functions call the Claude API directly and need it. No key is
-ever sent to the browser.
+Set `GEMINI_API_KEY` in your environment (or a local `.env` picked up by
+`netlify dev`) — the functions call the Gemini Developer API directly and need it. Grab
+a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey) (no
+billing required for `gemini-2.5-flash`, the model this app uses). No key is ever sent
+to the browser.
 
 To test the "Email My Scorecard" button locally, also set `RESEND_API_KEY` (a free
 [Resend](https://resend.com) account works — grab the key from their dashboard). Without
@@ -68,6 +72,16 @@ the rest of the app (role-play + grading) works fine without it.
 ## Deploying
 
 Point a Netlify site at this repo with **Base directory: `whittingham-training`** (its
-`netlify.toml` handles build/publish/functions from there), and set `ANTHROPIC_API_KEY`
+`netlify.toml` handles build/publish/functions from there), and set `GEMINI_API_KEY`
 and `RESEND_API_KEY` in that site's environment variables (plus `RESEND_FROM_EMAIL` once
 a sending domain is verified in Resend).
+
+## Cost
+
+Built to run at **$0**. Netlify's free tier easily covers a training tool's traffic,
+Resend's free tier is 3,000 emails/month, and `gemini-2.5-flash` is free of charge on
+the Gemini Developer API (rate-limited, not usage-billed — plenty for a handful of
+agents practicing). If usage ever needs more headroom than the free tier allows, the
+only code that would need to change is `netlify/functions/_shared/gemini.mts` and the
+two functions that call it — `shared/prompt.ts`, `shared/guideContent.ts`, and the
+entire frontend are provider-agnostic.

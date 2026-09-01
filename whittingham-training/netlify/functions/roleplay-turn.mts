@@ -1,15 +1,20 @@
-import Anthropic from '@anthropic-ai/sdk'
+import type { Content } from '@google/genai'
 import { json } from './_shared/http.mts'
+import { GEMINI_MODEL, getGeminiClient } from './_shared/gemini.mts'
 import { buildRoleplaySystemPrompt, parseRoleplayReply } from '../../shared/prompt.ts'
 import type { ChatMessage, RoleplayTurnRequest, RoleplayTurnResponse } from '../../shared/types.ts'
-
-const client = new Anthropic()
 
 const MAX_HISTORY = 60
 const MAX_MESSAGE_LEN = 2000
 
 export default async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, { status: 405 })
+
+  const ai = getGeminiClient()
+  if (!ai) {
+    console.error('roleplay-turn: GEMINI_API_KEY is not set')
+    return json({ error: 'The role-play AI is not configured on this deployment yet.' }, { status: 501 })
+  }
 
   let body: RoleplayTurnRequest
   try {
@@ -31,32 +36,33 @@ export default async (req: Request): Promise<Response> => {
 
   const trimmedHistory: ChatMessage[] = Array.isArray(history) ? history.slice(-MAX_HISTORY) : []
 
-  const messages: Anthropic.MessageParam[] = trimmedHistory.map((m) => ({
-    role: m.role === 'agent' ? 'user' : 'assistant',
-    content: m.text,
+  const contents: Content[] = trimmedHistory.map((m) => ({
+    role: m.role === 'agent' ? 'user' : 'model',
+    parts: [{ text: m.text }],
   }))
-  messages.push({ role: 'user', content: agentMessage })
+  contents.push({ role: 'user', parts: [{ text: agentMessage }] })
 
-  let response: Anthropic.Message
+  let responseText: string
   try {
-    response = await client.messages.create({
-      model: 'claude-opus-5',
-      max_tokens: 700,
-      system: buildRoleplaySystemPrompt(scenario, phase),
-      output_config: { effort: 'low' },
-      messages,
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents,
+      config: {
+        systemInstruction: buildRoleplaySystemPrompt(scenario, phase),
+        maxOutputTokens: 700,
+      },
     })
+    responseText = response.text ?? ''
   } catch (err) {
-    console.error('roleplay-turn: Anthropic API error', err)
+    console.error('roleplay-turn: Gemini API error', err)
     return json({ error: 'The role-play AI is unavailable right now. Try again in a moment.' }, { status: 502 })
   }
 
-  const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text')
-  if (!textBlock) {
+  if (!responseText.trim()) {
     return json({ error: 'No response generated' }, { status: 502 })
   }
 
-  const parsed = parseRoleplayReply(textBlock.text, phase)
+  const parsed = parseRoleplayReply(responseText, phase)
 
   const result: RoleplayTurnResponse = {
     reply: parsed.reply,

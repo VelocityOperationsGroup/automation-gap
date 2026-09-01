@@ -1,14 +1,18 @@
-import Anthropic from '@anthropic-ai/sdk'
 import { json } from './_shared/http.mts'
+import { GEMINI_MODEL, getGeminiClient } from './_shared/gemini.mts'
 import { buildDebriefSystemPrompt, historyToTranscript } from '../../shared/prompt.ts'
 import type { DebriefReport, DebriefRequest } from '../../shared/types.ts'
-
-const client = new Anthropic()
 
 const MAX_HISTORY = 80
 
 export default async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, { status: 405 })
+
+  const ai = getGeminiClient()
+  if (!ai) {
+    console.error('roleplay-debrief: GEMINI_API_KEY is not set')
+    return json({ error: 'The debrief AI is not configured on this deployment yet.' }, { status: 501 })
+  }
 
   let body: DebriefRequest
   try {
@@ -27,31 +31,28 @@ export default async (req: Request): Promise<Response> => {
 
   const transcript = historyToTranscript(history.slice(-MAX_HISTORY), scenario)
 
-  let response: Anthropic.Message
+  let responseText: string
   try {
-    response = await client.messages.create({
-      model: 'claude-opus-5',
-      max_tokens: 1800,
-      system: buildDebriefSystemPrompt(scenario),
-      output_config: { effort: 'medium' },
-      messages: [{ role: 'user', content: `TRANSCRIPT:\n\n${transcript}` }],
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ role: 'user', parts: [{ text: `TRANSCRIPT:\n\n${transcript}` }] }],
+      config: {
+        systemInstruction: buildDebriefSystemPrompt(scenario),
+        maxOutputTokens: 1800,
+        responseMimeType: 'application/json',
+      },
     })
+    responseText = response.text ?? ''
   } catch (err) {
-    console.error('roleplay-debrief: Anthropic API error', err)
+    console.error('roleplay-debrief: Gemini API error', err)
     return json({ error: 'The debrief AI is unavailable right now. Try again in a moment.' }, { status: 502 })
-  }
-
-  const textBlock = response.content.find((b): b is Anthropic.TextBlock => b.type === 'text')
-  if (!textBlock) {
-    return json({ error: 'No debrief generated' }, { status: 502 })
   }
 
   let report: DebriefReport
   try {
-    const cleaned = textBlock.text.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
-    report = JSON.parse(cleaned) as DebriefReport
+    report = JSON.parse(responseText.trim()) as DebriefReport
   } catch (err) {
-    console.error('roleplay-debrief: failed to parse debrief JSON', err, textBlock.text)
+    console.error('roleplay-debrief: failed to parse debrief JSON', err, responseText)
     return json({ error: 'Could not parse the debrief. Try again.' }, { status: 502 })
   }
 
