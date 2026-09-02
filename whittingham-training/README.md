@@ -97,3 +97,24 @@ generic "unavailable, try again" error on the debrief screen), it's almost certa
 this — check Netlify's current function execution limit for your plan and, if it's the
 bottleneck, either use a Background Function for `roleplay-debrief` or trim
 `maxOutputTokens`/the rubric further.
+
+## Voice
+
+The chat screen supports talking instead of typing, entirely via the browser's built-in
+Web Speech API — no API key, no cost, no backend involvement:
+
+- **Tap-to-talk**: the mic button (`src/lib/speech.ts` + `ChatWindow.tsx`) starts
+  `SpeechRecognition`, shows the live transcript in the text box as you speak, and
+  auto-sends when you tap again (or when the browser detects you've stopped talking).
+  Typing remains available at all times as a fallback.
+- **Spoken replies**: persona replies auto-play via `SpeechSynthesis`, picking a
+  consistent voice per character (gatekeeper vs. Decision Maker sound different) when
+  the browser exposes more than one. A speaker icon in the header mutes/unmutes this.
+  Stage directions in the AI's reply (`*taps radio*`, `[background noise]`) are stripped
+  before speaking but still shown in the chat bubble.
+- **Browser support**: `SpeechRecognition` (the mic button) is Chrome/Edge only as of
+  writing — Firefox and most non-Chromium browsers don't support it, so the mic button
+  hides itself there and the app is text-only. `SpeechSynthesis` (spoken replies) has
+  much broader support. Both feature-detect independently and fail gracefully — a
+  denied microphone permission or unsupported browser just falls back to typing, with
+  an inline error rather than a crash.
