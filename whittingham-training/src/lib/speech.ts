@@ -68,7 +68,10 @@ export function startRecognition(callbacks: RecognitionCallbacks): RecognizerHan
   const recognizer = new Ctor()
   recognizer.lang = 'en-US'
   recognizer.interimResults = true
-  recognizer.continuous = false
+  // Continuous mode is deliberate: non-continuous recognition auto-stops after a
+  // brief pause, which cuts the trainee off mid-sentence. Continuous keeps the
+  // mic open across pauses until they explicitly hit stop.
+  recognizer.continuous = true
 
   let finalTranscript = ''
   let latestText = ''

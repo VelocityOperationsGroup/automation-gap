@@ -14,6 +14,7 @@ export interface ScenarioConfig {
   decisionMakerName: string
   difficulty: Difficulty
   agentName: string
+  researchNotes: string[]
 }
 
 export type ChatRole = 'agent' | 'persona'

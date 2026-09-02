@@ -224,3 +224,19 @@ export const PHASE_ORDER: Phase[] = [
   'closing',
   'complete',
 ]
+
+// Straight from the guide's Rapport Building Game (p.8) example topics — a
+// scenario gets 2 of these assigned at random so the agent has something
+// concrete to research/reference for rapport, same as a real PAC lead would.
+export const RESEARCH_TOPIC_POOL: string[] = [
+  'Third-generation, family-owned business',
+  "Started a non-profit after a family member's cancer diagnosis",
+  'Actively involved with Habitat for Humanity',
+  "The Decision Maker's alma mater is proudly displayed in the office",
+  'Celebrating 30 years in business this year',
+  "Won a regional 'Best of' award five years running",
+  'Recently expanded to a second location',
+  'Known locally for sponsoring a youth sports team',
+  'Reviews online consistently mention the owner by name',
+  'The business was started in the family garage',
+]

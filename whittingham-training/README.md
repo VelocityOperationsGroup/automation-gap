@@ -50,7 +50,14 @@ the rest of the app (role-play + grading) works fine without it.
 
 - `shared/guideContent.ts` — the gatekeeper script, Decision Maker intro, the 7
   pre-presentation objections, presentation talking points, the 5 closing objections,
-  business personas, and difficulty notes, all pulled from the Worksite Training Guide.
+  business personas, difficulty notes, and a research-topic pool (the guide's Rapport
+  Building Game example list), all pulled from the Worksite Training Guide.
+- Each scenario gets 2 random research notes (`src/lib/scenario.ts`), fed into both the
+  role-play system prompt (so the Decision Maker reacts naturally when they come up) and
+  the debrief prompt (so "Rapport & Research" is graded on whether the agent actually
+  used them). They — plus the gatekeeper/Decision Maker names — stay visible in a
+  collapsible "Scenario Notes" panel in `ChatWindow.tsx` for the whole session, not just
+  in the opening hint.
 - `shared/prompt.ts` — builds the per-phase system prompt for the role-play persona
   and the grading system prompt for the debrief, plus the reply/control-block parser.
 - `shared/types.ts` — types shared between the frontend and the functions.
@@ -103,10 +110,11 @@ bottleneck, either use a Background Function for `roleplay-debrief` or trim
 The chat screen supports talking instead of typing, entirely via the browser's built-in
 Web Speech API — no API key, no cost, no backend involvement:
 
-- **Tap-to-talk**: the mic button (`src/lib/speech.ts` + `ChatWindow.tsx`) starts
-  `SpeechRecognition`, shows the live transcript in the text box as you speak, and
-  auto-sends when you tap again (or when the browser detects you've stopped talking).
-  Typing remains available at all times as a fallback.
+- **Push to Talk**: a large button above the text box (`src/lib/speech.ts` +
+  `ChatWindow.tsx`) starts `SpeechRecognition` in continuous mode — it keeps listening
+  through pauses instead of cutting off after a few seconds of silence — and shows the
+  live transcript in the text box as you speak. Hit "Stop & Send" (same button) when
+  you're done to send it. Typing remains available at all times as a fallback.
 - **Spoken replies**: persona replies auto-play via `SpeechSynthesis`, picking a
   consistent voice per character (gatekeeper vs. Decision Maker sound different) when
   the browser exposes more than one. A speaker icon in the header mutes/unmutes this.

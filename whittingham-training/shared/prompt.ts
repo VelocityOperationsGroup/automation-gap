@@ -86,6 +86,9 @@ Gatekeeper character: ${scenario.gatekeeperName}. ${persona.gatekeeperFlavor}
 Decision Maker character: ${scenario.decisionMakerName}. ${persona.decisionMakerFlavor}
 Trainee is playing agent "${scenario.agentName}".
 
+ESTABLISHED BACKGROUND (the agent has this "researched" ahead of time, per the guide's Research and Rapport step, and can see it on screen — treat it as true and react warmly/naturally if the agent brings it up accurately; never volunteer it yourself, and never contradict it):
+${scenario.researchNotes.map((n) => `- ${n}`).join('\n')}
+
 DIFFICULTY
 ${difficultyNote}
 
@@ -111,6 +114,10 @@ export function buildDebriefSystemPrompt(scenario: ScenarioConfig): string {
   const categories = RUBRIC_CATEGORIES.join(', ')
 
   return `You are a sales trainer for Whittingham Agency (a Globe Life Liberty National Division agency), grading a completed worksite-sales role-play against the official Worksite Training Guide script. You just watched (via transcript) a trainee named "${scenario.agentName}" practice on a simulated ${persona.label} at ${scenario.difficulty} difficulty.
+
+The agent had this research available on screen the whole time, per the guide's Research and Rapport step:
+${scenario.researchNotes.map((n) => `- ${n}`).join('\n')}
+Grade "Rapport & Research" specifically on whether the agent actually used any of it to build rapport — using it well is a 4-5, ignoring it entirely when there was an opening to use it is a 1-2.
 
 Grade against these rubric categories, in this order: ${categories}. Score each 1-5 (5 = matched the ideal script pattern closely and confidently, 1 = skipped or badly missed it). If a category never came up in the transcript (e.g. the session ended early), score it 1 and say so in the feedback rather than inventing evidence.
 
