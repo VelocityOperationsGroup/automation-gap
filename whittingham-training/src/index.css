@@ -1,0 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-wt-bg: #0c1220;
+  --color-wt-panel: #121a2c;
+  --color-wt-panel-light: #182238;
+  --color-wt-border: #263254;
+  --color-wt-gold: #e8b64a;
+  --color-wt-gold-light: #f5d489;
+  --color-wt-blue: #4a8fe8;
+  --color-wt-text: #e9edf6;
+  --color-wt-muted: #93a1c2;
+  --color-wt-green: #4ade80;
+  --color-wt-red: #f87171;
+  --font-display: "Sora", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--color-wt-bg);
+  color: var(--color-wt-text);
+  font-family: var(--font-sans);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+::selection {
+  background: var(--color-wt-gold);
+  color: var(--color-wt-bg);
+}
+
+* {
+  scrollbar-color: var(--color-wt-border) transparent;
+}
