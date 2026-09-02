@@ -38,6 +38,14 @@ function MicIcon({ className }: { className?: string }) {
   )
 }
 
+function StopIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <rect x="6" y="6" width="12" height="12" rx="2" />
+    </svg>
+  )
+}
+
 function SpeakerIcon({ muted, className }: { muted: boolean; className?: string }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -88,6 +96,7 @@ export function ChatWindow({
   const [listening, setListening] = useState(false)
   const [voiceError, setVoiceError] = useState<string | null>(null)
   const [voiceRepliesOn, setVoiceRepliesOn] = useState(true)
+  const [notesOpen, setNotesOpen] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
   const recognizerRef = useRef<RecognizerHandle | null>(null)
   const lastSpokenCount = useRef(0)
@@ -200,6 +209,36 @@ export function ChatWindow({
           </div>
         </div>
         <PhaseTracker phase={phase} />
+
+        <div className="rounded-xl border border-wt-border bg-wt-panel">
+          <button
+            onClick={() => setNotesOpen((o) => !o)}
+            className="flex w-full items-center justify-between px-3 py-2 text-xs font-semibold text-wt-muted transition-colors hover:text-wt-gold-light"
+          >
+            <span>Scenario Notes</span>
+            <span>{notesOpen ? '▾ Hide' : '▸ Show'}</span>
+          </button>
+          {notesOpen && (
+            <div className="grid grid-cols-2 gap-2 px-3 pb-3 text-xs">
+              <div className="rounded-lg border border-wt-border bg-wt-panel-light px-2.5 py-2">
+                <div className="text-wt-muted">Gatekeeper</div>
+                <div className="font-semibold text-wt-text">{scenario.gatekeeperName}</div>
+              </div>
+              <div className="rounded-lg border border-wt-border bg-wt-panel-light px-2.5 py-2">
+                <div className="text-wt-muted">Decision Maker</div>
+                <div className="font-semibold text-wt-text">{scenario.decisionMakerName}</div>
+              </div>
+              <div className="col-span-2 rounded-lg border border-wt-border bg-wt-panel-light px-2.5 py-2">
+                <div className="mb-1 text-wt-muted">Research — use these to build rapport</div>
+                <ul className="space-y-0.5 text-wt-text">
+                  {scenario.researchNotes.map((note, i) => (
+                    <li key={i}>• {note}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
       <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-6">
@@ -207,7 +246,7 @@ export function ChatWindow({
           <div className="rounded-xl border border-wt-border bg-wt-panel px-4 py-4 text-sm text-wt-muted">
             You just walked in the door. Start the scene — greet the gatekeeper and ask for{' '}
             <span className="text-wt-gold-light">{scenario.decisionMakerName}</span>, per the Gatekeeper Script.
-            {micSupported && ' Tap the mic to talk, or type below.'}
+            {micSupported && ' Push to talk, or type below.'}
           </div>
         )}
         {history.map((m, i) => (
@@ -229,8 +268,32 @@ export function ChatWindow({
         )}
       </div>
 
-      <div className="border-t border-wt-border px-4 py-4 sm:px-6">
-        {voiceError && <p className="mb-2 text-xs text-wt-red">{voiceError}</p>}
+      <div className="space-y-3 border-t border-wt-border px-4 py-4 sm:px-6">
+        {voiceError && <p className="text-xs text-wt-red">{voiceError}</p>}
+
+        {micSupported && (
+          <button
+            onClick={toggleListening}
+            disabled={sending || isComplete}
+            className={
+              'flex h-14 w-full items-center justify-center gap-2 rounded-xl border-2 text-base font-bold transition-colors disabled:opacity-40 ' +
+              (listening
+                ? 'border-wt-red bg-wt-red/20 text-wt-red animate-pulse'
+                : 'border-wt-gold bg-wt-gold/10 text-wt-gold-light hover:bg-wt-gold/20')
+            }
+          >
+            {listening ? (
+              <>
+                <StopIcon className="h-6 w-6" /> Stop &amp; Send
+              </>
+            ) : (
+              <>
+                <MicIcon className="h-6 w-6" /> Push to Talk
+              </>
+            )}
+          </button>
+        )}
+
         <div className="flex items-end gap-2">
           <textarea
             value={draft}
@@ -245,28 +308,13 @@ export function ChatWindow({
               isComplete
                 ? 'Session complete — get your debrief above.'
                 : listening
-                  ? 'Listening… tap the mic again to send.'
-                  : 'Say your line as the agent…'
+                  ? 'Listening… hit Stop & Send when done.'
+                  : 'Or type your line as the agent…'
             }
             disabled={sending || isComplete}
             rows={2}
             className="flex-1 resize-none rounded-xl border border-wt-border bg-wt-panel px-3 py-2.5 text-sm text-wt-text placeholder:text-wt-muted focus:border-wt-gold/60 focus:outline-none disabled:opacity-50"
           />
-          {micSupported && (
-            <button
-              onClick={toggleListening}
-              disabled={sending || isComplete}
-              title={listening ? 'Tap to stop and send' : 'Tap to talk'}
-              className={
-                'h-[42px] w-[42px] shrink-0 rounded-xl border transition-colors disabled:opacity-40 flex items-center justify-center ' +
-                (listening
-                  ? 'border-wt-red bg-wt-red/20 text-wt-red animate-pulse'
-                  : 'border-wt-border text-wt-muted hover:text-wt-gold-light')
-              }
-            >
-              <MicIcon className="h-5 w-5" />
-            </button>
-          )}
           <button
             onClick={submit}
             disabled={sending || isComplete || !draft.trim()}
