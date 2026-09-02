@@ -3,9 +3,64 @@ import type { ChatMessage, Phase, ScenarioConfig } from '../../shared/types.ts'
 import { personaFor } from '../../shared/guideContent.ts'
 import { PhaseTracker } from './PhaseTracker.tsx'
 import { MessageBubble } from './MessageBubble.tsx'
+import {
+  cancelSpeech,
+  isSpeechRecognitionSupported,
+  isSpeechSynthesisSupported,
+  speak,
+  startRecognition,
+  stripStageDirections,
+  type RecognizerHandle,
+} from '../lib/speech.ts'
 
 function personaLabelForPhase(phase: Phase, scenario: ScenarioConfig): string {
   return phase === 'gatekeeper' ? scenario.gatekeeperName : scenario.decisionMakerName
+}
+
+function MicIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M19 11a7 7 0 0 1-14 0M12 18v3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function SpeakerIcon({ muted, className }: { muted: boolean; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+      <path
+        d="M4 9v6h4l5 4V5L8 9H4Z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {muted ? (
+        <path d="M17 9l5 6M22 9l-5 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      ) : (
+        <path
+          d="M16.5 8.5a5 5 0 0 1 0 7"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
+    </svg>
+  )
 }
 
 interface ChatWindowProps {
@@ -30,18 +85,85 @@ export function ChatWindow({
   onBackToSetup,
 }: ChatWindowProps) {
   const [draft, setDraft] = useState('')
+  const [listening, setListening] = useState(false)
+  const [voiceError, setVoiceError] = useState<string | null>(null)
+  const [voiceRepliesOn, setVoiceRepliesOn] = useState(true)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const recognizerRef = useRef<RecognizerHandle | null>(null)
+  const lastSpokenCount = useRef(0)
   const persona = personaFor(scenario.businessId)
+
+  const micSupported = isSpeechRecognitionSupported()
+  const speechSupported = isSpeechSynthesisSupported()
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [history, sending])
+
+  // Auto-play only newly arrived persona messages, not the whole history on mount/re-render.
+  // Deliberately keyed on `history` alone — speechSupported/scenario are static per
+  // session and voiceRepliesOn is read fresh on each new message via closure.
+  // oxlint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!voiceRepliesOn || !speechSupported) {
+      lastSpokenCount.current = history.length
+      return
+    }
+    for (let i = lastSpokenCount.current; i < history.length; i++) {
+      const msg = history[i]
+      if (msg.role === 'persona') {
+        speak(stripStageDirections(msg.text), personaLabelForPhase(msg.phase, scenario))
+      }
+    }
+    lastSpokenCount.current = history.length
+  }, [history])
+
+  useEffect(() => {
+    return () => cancelSpeech()
+  }, [])
 
   function submit() {
     const text = draft.trim()
     if (!text || sending) return
     onSend(text)
     setDraft('')
+  }
+
+  function toggleListening() {
+    if (listening) {
+      recognizerRef.current?.stop()
+      return
+    }
+    cancelSpeech()
+    setVoiceError(null)
+    setDraft('')
+    const handle = startRecognition({
+      onInterim: (text) => setDraft(text),
+      onFinal: (text) => {
+        setDraft('')
+        onSend(text)
+      },
+      onEnd: () => {
+        setListening(false)
+        recognizerRef.current = null
+      },
+      onError: (message) => {
+        setVoiceError(message)
+        setListening(false)
+        recognizerRef.current = null
+      },
+    })
+    if (handle) {
+      recognizerRef.current = handle
+      setListening(true)
+    }
+  }
+
+  function toggleVoiceReplies() {
+    setVoiceRepliesOn((on) => {
+      if (on) cancelSpeech()
+      return !on
+    })
   }
 
   const isComplete = phase === 'complete'
@@ -59,12 +181,23 @@ export function ChatWindow({
               Playing as <span className="text-wt-gold-light">{scenario.agentName}</span> · {scenario.difficulty} difficulty
             </p>
           </div>
-          <button
-            onClick={onEndSession}
-            className="shrink-0 rounded-lg border border-wt-gold/40 bg-wt-gold/10 px-3 py-2 text-xs font-semibold text-wt-gold-light transition-colors hover:bg-wt-gold/20"
-          >
-            {isComplete ? 'Get Debrief →' : 'End & Get Debrief'}
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            {speechSupported && (
+              <button
+                onClick={toggleVoiceReplies}
+                title={voiceRepliesOn ? 'Mute voice replies' : 'Unmute voice replies'}
+                className="rounded-lg border border-wt-border p-2 text-wt-muted transition-colors hover:text-wt-gold-light"
+              >
+                <SpeakerIcon muted={!voiceRepliesOn} className="h-4 w-4" />
+              </button>
+            )}
+            <button
+              onClick={onEndSession}
+              className="rounded-lg border border-wt-gold/40 bg-wt-gold/10 px-3 py-2 text-xs font-semibold text-wt-gold-light transition-colors hover:bg-wt-gold/20"
+            >
+              {isComplete ? 'Get Debrief →' : 'End & Get Debrief'}
+            </button>
+          </div>
         </div>
         <PhaseTracker phase={phase} />
       </header>
@@ -74,6 +207,7 @@ export function ChatWindow({
           <div className="rounded-xl border border-wt-border bg-wt-panel px-4 py-4 text-sm text-wt-muted">
             You just walked in the door. Start the scene — greet the gatekeeper and ask for{' '}
             <span className="text-wt-gold-light">{scenario.decisionMakerName}</span>, per the Gatekeeper Script.
+            {micSupported && ' Tap the mic to talk, or type below.'}
           </div>
         )}
         {history.map((m, i) => (
@@ -96,6 +230,7 @@ export function ChatWindow({
       </div>
 
       <div className="border-t border-wt-border px-4 py-4 sm:px-6">
+        {voiceError && <p className="mb-2 text-xs text-wt-red">{voiceError}</p>}
         <div className="flex items-end gap-2">
           <textarea
             value={draft}
@@ -106,11 +241,32 @@ export function ChatWindow({
                 submit()
               }
             }}
-            placeholder={isComplete ? 'Session complete — get your debrief above.' : 'Say your line as the agent…'}
+            placeholder={
+              isComplete
+                ? 'Session complete — get your debrief above.'
+                : listening
+                  ? 'Listening… tap the mic again to send.'
+                  : 'Say your line as the agent…'
+            }
             disabled={sending || isComplete}
             rows={2}
             className="flex-1 resize-none rounded-xl border border-wt-border bg-wt-panel px-3 py-2.5 text-sm text-wt-text placeholder:text-wt-muted focus:border-wt-gold/60 focus:outline-none disabled:opacity-50"
           />
+          {micSupported && (
+            <button
+              onClick={toggleListening}
+              disabled={sending || isComplete}
+              title={listening ? 'Tap to stop and send' : 'Tap to talk'}
+              className={
+                'h-[42px] w-[42px] shrink-0 rounded-xl border transition-colors disabled:opacity-40 flex items-center justify-center ' +
+                (listening
+                  ? 'border-wt-red bg-wt-red/20 text-wt-red animate-pulse'
+                  : 'border-wt-border text-wt-muted hover:text-wt-gold-light')
+              }
+            >
+              <MicIcon className="h-5 w-5" />
+            </button>
+          )}
           <button
             onClick={submit}
             disabled={sending || isComplete || !draft.trim()}
