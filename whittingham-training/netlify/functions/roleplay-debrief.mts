@@ -1,10 +1,27 @@
-import { ThinkingLevel } from '@google/genai'
+import { ThinkingLevel, type GoogleGenAI } from '@google/genai'
 import { json } from './_shared/http.mts'
 import { GEMINI_MODEL, getGeminiClient } from './_shared/gemini.mts'
 import { buildDebriefSystemPrompt, historyToTranscript } from '../../shared/prompt.ts'
-import type { DebriefReport, DebriefRequest } from '../../shared/types.ts'
+import type { DebriefReport, DebriefRequest, ScenarioConfig } from '../../shared/types.ts'
 
 const MAX_HISTORY = 80
+
+async function requestDebriefJson(ai: GoogleGenAI, scenario: ScenarioConfig, transcript: string): Promise<string> {
+  const response = await ai.models.generateContent({
+    model: GEMINI_MODEL,
+    contents: [{ role: 'user', parts: [{ text: `TRANSCRIPT:\n\n${transcript}` }] }],
+    config: {
+      systemInstruction: buildDebriefSystemPrompt(scenario),
+      // Real debriefs run ~600 output tokens in testing — this ceiling is
+      // headroom for longer/harder sessions, not the expected size, so raising
+      // it doesn't slow the common case, only avoids truncating the tail case.
+      maxOutputTokens: 2000,
+      responseMimeType: 'application/json',
+      thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+    },
+  })
+  return response.text ?? ''
+}
 
 export default async (req: Request): Promise<Response> => {
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, { status: 405 })
@@ -32,33 +49,31 @@ export default async (req: Request): Promise<Response> => {
 
   const transcript = historyToTranscript(history.slice(-MAX_HISTORY), scenario)
 
-  let responseText: string
-  try {
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [{ role: 'user', parts: [{ text: `TRANSCRIPT:\n\n${transcript}` }] }],
-      config: {
-        systemInstruction: buildDebriefSystemPrompt(scenario),
-        maxOutputTokens: 1200,
-        responseMimeType: 'application/json',
-        // LOW keeps some reasoning for rubric judgment while trimming latency —
-        // this call is the one most likely to brush against a hosting timeout.
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-      },
-    })
-    responseText = response.text ?? ''
-  } catch (err) {
-    console.error('roleplay-debrief: Gemini API error', err)
-    return json({ error: 'The debrief AI is unavailable right now. Try again in a moment.' }, { status: 502 })
+  // One transparent retry: if the model's JSON mode ever produces malformed or
+  // truncated output, a second attempt usually succeeds without the trainee
+  // needing to notice or manually retry themselves.
+  let lastRawText = ''
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    let responseText: string
+    try {
+      responseText = await requestDebriefJson(ai, scenario, transcript)
+    } catch (err) {
+      console.error(`roleplay-debrief: Gemini API error (attempt ${attempt})`, err)
+      if (attempt === 2) {
+        return json({ error: 'The debrief AI is unavailable right now. Try again in a moment.' }, { status: 502 })
+      }
+      continue
+    }
+
+    lastRawText = responseText
+    try {
+      const report = JSON.parse(responseText.trim()) as DebriefReport
+      return json(report)
+    } catch (err) {
+      console.error(`roleplay-debrief: failed to parse debrief JSON (attempt ${attempt})`, err, responseText)
+    }
   }
 
-  let report: DebriefReport
-  try {
-    report = JSON.parse(responseText.trim()) as DebriefReport
-  } catch (err) {
-    console.error('roleplay-debrief: failed to parse debrief JSON', err, responseText)
-    return json({ error: 'Could not parse the debrief. Try again.' }, { status: 502 })
-  }
-
-  return json(report)
+  console.error('roleplay-debrief: both attempts failed to produce valid JSON. Last raw text:', lastRawText)
+  return json({ error: 'Could not parse the debrief. Try again.' }, { status: 502 })
 }
