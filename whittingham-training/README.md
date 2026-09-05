@@ -93,17 +93,25 @@ only code that would need to change is `netlify/functions/_shared/gemini.mts` an
 two functions that call it — `shared/prompt.ts`, `shared/guideContent.ts`, and the
 entire frontend are provider-agnostic.
 
-## Known limitation: debrief latency vs. function timeouts
+## Debrief latency and streaming
 
-`gemini-3.6-flash` is a reasoning model — even at `thinkingConfig.thinkingLevel: "LOW"`
-(set on `roleplay-debrief.mts` specifically to keep this in check), grading a full
-transcript took ~9.5s in local testing with a short 5-message transcript; a longer real
-session will run higher. `roleplay-turn.mts` uses `"MINIMAL"` and stays under 2s, so the
-live chat itself is fine. If a real deployment sees `roleplay-debrief` time out (a
-generic "unavailable, try again" error on the debrief screen), it's almost certainly
-this — check Netlify's current function execution limit for your plan and, if it's the
-bottleneck, either use a Background Function for `roleplay-debrief` or trim
-`maxOutputTokens`/the rubric further.
+`gemini-3.6-flash` is a reasoning model, and grading a full transcript is the slowest
+call in the app (~6-10s in testing). This showed up in production as a `504` — the
+debrief occasionally took longer than Netlify's standard synchronous function timeout,
+which killed the request before Gemini finished. `roleplay-debrief.mts` now returns a
+**streamed** `Response` (a `ReadableStream` body, still just one JSON chunk once
+grading is done) specifically because streamed responses aren't bound by that same
+timeout — this is the fix Netlify's own docs recommend for slow backend calls, not a
+workaround. It also runs `thinkingConfig.thinkingLevel: "MINIMAL"` (down from `"LOW"`)
+for extra speed margin, plus one transparent retry if Gemini's JSON mode ever returns
+something that fails to parse.
+
+Because a streamed response can't set its HTTP status after the fact, `roleplay-debrief`
+always returns `200` and puts errors in the JSON body (`{ "error": "..." }`) instead —
+`src/lib/api.ts`'s `post()` helper checks for that `error` field regardless of `res.ok`,
+so this is transparent to the rest of the frontend. `roleplay-turn.mts` and
+`send-scorecard.mts` stay as plain buffered responses since they're already fast and
+have never shown this problem.
 
 ## Voice
 
