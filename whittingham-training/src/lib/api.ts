@@ -13,11 +13,14 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
   })
-  if (!res.ok) {
-    const err = (await res.json().catch(() => null)) as { error?: string } | null
-    throw new Error(err?.error ?? `Request failed (${res.status})`)
+  const data = (await res.json().catch(() => null)) as (T & { error?: string }) | null
+  // Some functions (roleplay-debrief) use a streamed Response to avoid a hosting
+  // timeout on slow model calls, which means errors also arrive with a 200
+  // status — so an `error` field in the body always wins over `res.ok`.
+  if (!data || data.error) {
+    throw new Error(data?.error ?? `Request failed (${res.status})`)
   }
-  return (await res.json()) as T
+  return data
 }
 
 export function sendRoleplayTurn(
